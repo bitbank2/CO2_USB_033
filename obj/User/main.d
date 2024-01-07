@@ -22,11 +22,17 @@ User/main.o: ../User/main.c \
  /home/larry/mrs_community-workspace/CO2_USB_033/Peripheral/inc/ch32x035_wwdg.h \
  /home/larry/mrs_community-workspace/CO2_USB_033/User/ch32x035_it.h \
  /home/larry/mrs_community-workspace/CO2_USB_033/Peripheral/inc/ch32x035_misc.h \
+ /home/larry/mrs_community-workspace/CO2_USB_033/User/ch32x035_usbfs_device.h \
+ /home/larry/mrs_community-workspace/CO2_USB_033/User/usb_desc.h \
+ /home/larry/mrs_community-workspace/CO2_USB_033/Peripheral/inc/ch32x035_usb.h \
+ /home/larry/mrs_community-workspace/CO2_USB_033/User/UART.h \
+ /home/larry/mrs_community-workspace/CO2_USB_033/User/ch32x035_conf.h \
  ../User/../../libraries/ch32v_hal.inl \
  ../User/../../libraries/ch32v_hal.h ../User/../../libraries/spi_lcd.inl \
  ../User/../../libraries/spi_lcd.h ../User/../../libraries/scd41.inl \
  ../User/../../libraries/scd41.h ../User/Roboto_Black_40.h \
- ../User/battery.h
+ ../User/Open_Sans_Condensed_Bold_24.h ../User/battery.h \
+ ../User/bb_logo_40x80.h ../User/temp_bw.h ../User/humidity.h
 
 /home/larry/mrs_community-workspace/CO2_USB_033/Debug/debug.h:
 
@@ -74,6 +80,16 @@ User/main.o: ../User/main.c \
 
 /home/larry/mrs_community-workspace/CO2_USB_033/Peripheral/inc/ch32x035_misc.h:
 
+/home/larry/mrs_community-workspace/CO2_USB_033/User/ch32x035_usbfs_device.h:
+
+/home/larry/mrs_community-workspace/CO2_USB_033/User/usb_desc.h:
+
+/home/larry/mrs_community-workspace/CO2_USB_033/Peripheral/inc/ch32x035_usb.h:
+
+/home/larry/mrs_community-workspace/CO2_USB_033/User/UART.h:
+
+/home/larry/mrs_community-workspace/CO2_USB_033/User/ch32x035_conf.h:
+
 ../User/../../libraries/ch32v_hal.inl:
 
 ../User/../../libraries/ch32v_hal.h:
@@ -88,4 +104,12 @@ User/main.o: ../User/main.c \
 
 ../User/Roboto_Black_40.h:
 
+../User/Open_Sans_Condensed_Bold_24.h:
+
 ../User/battery.h:
+
+../User/bb_logo_40x80.h:
+
+../User/temp_bw.h:
+
+../User/humidity.h:

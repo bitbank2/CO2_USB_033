@@ -10,11 +10,16 @@
 
 #define CH32X035
 #define BITBANG
+#include <ch32x035_usbfs_device.h>
 #include "../../libraries/ch32v_hal.inl"
 #include "../../libraries/spi_lcd.inl"
 #include "../../libraries/scd41.inl"
 #include "Roboto_Black_40.h"
+#include "Open_Sans_Condensed_Bold_24.h"
 #include "battery.h"
+#include "bb_logo_40x80.h"
+#include "temp_bw.h"
+#include "humidity.h"
 
 #define LED_PIN 0xb7
 #define POWER_PIN 0xb1
@@ -40,6 +45,16 @@ void SetBrightness(uint8_t u8ccp)
     TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
     TIM_OC1Init( TIM3, &TIM_OCInitStructure );
 } /* SetBrightness() */
+
+void SendUSBData(uint8_t *pData, int iLen)
+{
+    NVIC_DisableIRQ( USBFS_IRQn );
+    NVIC_DisableIRQ( USBFS_IRQn );
+    Uart.USB_Up_IngFlag = 0x01;
+    Uart.USB_Up_TimeOut = 0x00;
+    USBFS_Endp_DataUp( DEF_UEP3, pData, iLen, DEF_UEP_CPY_LOAD );
+    NVIC_EnableIRQ( USBFS_IRQn );
+} /* SendUSBData() */
 
 void TIM3_PWMOut_Init(u16 arr, u16 psc, u16 ccp)
 {
@@ -97,11 +112,38 @@ int i2str(char *pDest, int iVal)
 
 void ShowLogo(void)
 {
-    lcdWriteString(26,0,"CO2 ", COLOR_GREEN, COLOR_BLACK, FONT_12x16);
-    lcdWriteString(-1,-1,"Micro", COLOR_WHITE, COLOR_BLACK, FONT_12x16);
-    lcdWriteString(8,24,"Portable CO2", COLOR_CYAN, COLOR_BLACK, FONT_12x16);
-    lcdWriteString(44,40,"Sensor", COLOR_CYAN, COLOR_BLACK, FONT_12x16);
-    lcdWriteString(28,64,"Starting...", COLOR_YELLOW, COLOR_BLACK, FONT_8x8);
+	uint16_t u16R, u16G;
+	int i, j;
+    lcdWriteString(56,16,"CH32X033", COLOR_RED, COLOR_BLACK, FONT_12x16);
+    lcdWriteString(56,32,"Portable", COLOR_GREEN, COLOR_BLACK, FONT_12x16);
+    lcdWriteString(40,56,"CO2 Sensor", COLOR_BLUE, COLOR_BLACK, FONT_12x16);
+    for (int j=0; j<2; j++) { // iterations
+        u16G = 63; u16R = 0; // start at pure green
+    	for (i=0; i<32; i++) { // G -> Y
+    		lcdDrawPattern((uint8_t *)bb_logo_40x80, 8, 0, 0, 40, 80, 0, 7 | (u16R<<11) | (u16G<<5));
+    		u16R++;
+        	Delay_Ms(25);
+    	} // for i
+    	u16R = 31;
+    	for (i=0; i<32; i++) { // Y -> R
+    		lcdDrawPattern((uint8_t *)bb_logo_40x80, 8, 0, 0, 40, 80, 0, 7 | (u16R<<11) | (u16G<<5));
+    		u16G-=2;
+        	Delay_Ms(25);
+    	} // for i
+    	u16G = 1;
+    	for (i=0; i<32; i++) { // R -> Y
+    		lcdDrawPattern((uint8_t *)bb_logo_40x80, 8, 0, 0, 40, 80, 0, 7 | (u16R<<11) | (u16G<<5));
+    		u16G+=2;
+        	Delay_Ms(25);
+    	} // for i
+    	u16G = 63;
+    	for (i=0; i<32; i++) { // Y -> G
+    		lcdDrawPattern((uint8_t *)bb_logo_40x80, 8, 0, 0, 40, 80, 0, 7 | (u16R<<11) | (u16G<<5));
+    		u16R--;
+        	Delay_Ms(25);
+    	} // for i
+    } // for j
+
 } /* ShowLogo() */
 
 void PowerDown(void)
@@ -124,6 +166,12 @@ void ShowCO2(void)
 	static int iOldLen = 0;
     const uint16_t usColors[7] = {0x7e0, 0x67e0, 0xffe0, 0xfe40, 0xfbc0, 0xf800, 0xffff};
 
+    if (digitalRead(VBUS_PIN) == 1) {
+    	// connected to PC; send sensor data report over USB
+    	sprintf(szTemp, "%d,%d.%d,%d\n\r", _iCO2, _iTemperature/10, _iTemperature % 10, _iHumidity/10);
+    	SendUSBData(szTemp, strlen(szTemp));
+    	Delay_Ms(100);
+    }
     i = i2str(szTemp, (int)_iCO2);
     if (i != iOldLen) { // if the number of digits of CO2 changes, repaint everything
         lcdFill(usBG);
@@ -133,12 +181,13 @@ void ShowCO2(void)
     if (i < 0) i = 0;
     iColor = udivmod32(i, 250, NULL);
     if (iColor > 5) iColor = 5; // show with a color
-    lcdWriteStringCustom(&Roboto_Black_40, 0, 32, szTemp, usColors[iColor], usBG, 1);
+    lcdWriteStringCustom(&Roboto_Black_40, 0, 30, szTemp, usColors[iColor], usBG, 1);
     x = lcdGetCursorX();
     lcdWriteString(x, 2, "CO2", usColors[iColor], usBG, FONT_8x8);
     lcdWriteString(x, 10, "ppm", usColors[iColor], usBG, FONT_8x8);
 
-    lcdWriteString(0, 36, "Temp ", usFG, usBG, FONT_12x16);
+	lcdDrawPattern((uint8_t *)&temp_bw[0x92], 4, 0, 40, 26, 40, 0, COLOR_MAGENTA);
+    lcdDrawPattern((uint8_t *)&humidity[0x92], 4, 96, 39, 32, 41, 0, COLOR_CYAN);
     i = _iTemperature/10;
     rem = _iTemperature % 10;
     i2str(szTemp, i); // whole part
@@ -146,11 +195,11 @@ void ShowCO2(void)
     szTemp[3] = '0' + rem; // fraction
     szTemp[4] = 'C';
     szTemp[5] = 0;
-    lcdWriteString(100, 36, szTemp, usFG, usBG, FONT_12x16);
-    lcdWriteString(0, 52, "Humidity ", usFG, usBG, FONT_12x16);
+//    lcdWriteString(32, 52, szTemp, usFG, usBG, FONT_12x16);
+    lcdWriteStringCustom(&Open_Sans_Condensed_Bold_24, 32, 66, szTemp, COLOR_WHITE, usBG, 1);
     i2str(szTemp, _iHumidity/10); // throw away fraction since it's not accurate
-    lcdWriteString(100, 52, szTemp, usFG, usBG, FONT_12x16);
-    lcdWriteString(124, 52, "%", usFG, usBG, FONT_12x16);
+//    lcdWriteString(132, 52, szTemp, usFG, usBG, FONT_12x16);
+    lcdWriteStringCustom(&Open_Sans_Condensed_Bold_24, 132, 66, szTemp, COLOR_WHITE, usBG, 1);
     // show battery level
 	if (digitalRead(VBUS_PIN) == 1|| (iBattery > 3000 && iBattery <4096)) { // valid values, otherwise no battery measurement
 		   if (digitalRead(VBUS_PIN) == 1) {
@@ -403,8 +452,16 @@ int main(void)
     iBrightness = 230;
     TIM3_PWMOut_Init( 255, 512, iBrightness ); // start a 20% duty cycle PWM output on D4 of about 512hz
 
+    if (digitalRead(VBUS_PIN) == 1) {
+    	// Start USB CDC service and send serial reports of the sensor readings
+    	RCC_Configuration();
+    	USBFS_RCC_Init();
+    	USBFS_Device_Init( ENABLE, PWR_VDD_SupplyVoltage());
+    } // connected to USB bus
+
 //    pinMode(LCD_BL, OUTPUT);
 //	digitalWrite(LCD_BL, 1);
+//    lcdSetDMA(0); // Disable DMA since it conflicts with USB's use
     lcdInit(LCD_ST7735S_80x160, 24000000, CS_PIN, DC_PIN, RST_PIN, 0/*BL_PIN*/, 0, 0);
     lcdWriteCMD(0x21); // inverted
     lcdWriteCMD(0x36);
@@ -413,13 +470,6 @@ int main(void)
     usBG = 0; usFG = 0xffff;
 //    lcdOrientation(iOrientation);
     lcdFill(usBG);
-//    pinMode(VBUS_PIN, INPUT_PULLDOWN);
-//    while (1) {
-//    	ucTemp[0] = '0' + digitalRead(VBUS_PIN);
-//    	ucTemp[1] = 0;
-//    	lcdWriteString(0,0,ucTemp, COLOR_WHITE, COLOR_BLACK, FONT_12x16);
-//    	Delay_Ms(250);
-//    }
     ShowLogo();
  //   if (I2CTest(0x62)) {
  //   	lcdWriteString(0,0,"Found SCD41!", COLOR_GREEN, COLOR_BLACK, FONT_12x16);
@@ -429,7 +479,8 @@ int main(void)
 //    Delay_Ms(10000);
     scd41_setAutoCalibration(0); // make sure auto calibration is turned off
     scd41_start(SCD_POWERMODE_NORMAL);
-    iTick = iHold = 0;
+    iTick = -1;
+    iHold = 0;
     iShutdown = 5*60*8; // auto shutdown after 5 minutes
     while(1)
     {

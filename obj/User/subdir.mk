@@ -4,19 +4,28 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../User/UART.c \
 ../User/ch32x035_it.c \
+../User/ch32x035_usbfs_device.c \
 ../User/main.c \
-../User/system_ch32x035.c 
+../User/system_ch32x035.c \
+../User/usb_desc.c 
 
 OBJS += \
+./User/UART.o \
 ./User/ch32x035_it.o \
+./User/ch32x035_usbfs_device.o \
 ./User/main.o \
-./User/system_ch32x035.o 
+./User/system_ch32x035.o \
+./User/usb_desc.o 
 
 C_DEPS += \
+./User/UART.d \
 ./User/ch32x035_it.d \
+./User/ch32x035_usbfs_device.d \
 ./User/main.d \
-./User/system_ch32x035.d 
+./User/system_ch32x035.d \
+./User/usb_desc.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
